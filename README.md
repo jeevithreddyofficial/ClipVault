@@ -5,7 +5,7 @@ A tiny, native macOS menu bar app that remembers the last **15 text items** you 
 No Xcode project, no dependencies: one Swift file compiled with `swiftc`.
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="ClipVault menu open in the macOS menu bar" width="432">
+  <img src="docs/screenshot.png" alt="ClipVault menu open in the macOS menu bar" width="454">
 </p>
 
 ## Features
