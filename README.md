@@ -14,7 +14,16 @@ No Xcode project, no dependencies: one Swift file compiled with `swiftc`.
 - 🔒 **Privacy.** History lives only in memory and is never written to disk. Items that password managers mark as concealed or transient are skipped.
 - 🪶 **Lightweight.** It checks the clipboard's change counter twice a second, which uses almost no CPU.
 
-## Requirements
+## Download
+
+Grab **`ClipVault-v1.0.0-macOS.zip`** from the [latest release](https://github.com/jeevithreddyofficial/ClipVault/releases/latest). It's a universal build that runs on Apple Silicon and Intel Macs. Unzip it and drag `ClipVault.app` into `/Applications`.
+
+> **First launch:** the app isn't notarized by Apple, so macOS will block it the first time. Right-click `ClipVault.app` → **Open** → **Open**. Or run:
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/ClipVault.app
+> ```
+
+## Requirements (building from source)
 
 - macOS 13 Ventura or later
 - Swift toolchain (Xcode **or** the Command Line Tools: `xcode-select --install`)
