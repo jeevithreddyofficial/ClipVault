@@ -44,7 +44,7 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
         registerHotKey()
     }
 
-    // MARK: - Global hotkey (⌘⇧V)
+    // MARK: - Global hotkey (⌃⌥V)
 
     private func registerHotKey() {
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard),
@@ -59,7 +59,7 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }, 1, &eventType, selfPtr, nil)
 
         let hotKeyID = EventHotKeyID(signature: OSType(0x434C5056) /* 'CLPV' */, id: 1)
-        RegisterEventHotKey(UInt32(kVK_ANSI_V), UInt32(cmdKey | shiftKey),
+        RegisterEventHotKey(UInt32(kVK_ANSI_V), UInt32(controlKey | optionKey),
                             hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
     }
 
@@ -108,7 +108,7 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let hint = NSMenuItem(title: "Open anytime with ⌘⇧V", action: nil, keyEquivalent: "")
+        let hint = NSMenuItem(title: "Open anytime with ⌃⌥V", action: nil, keyEquivalent: "")
         hint.isEnabled = false
         menu.addItem(hint)
 

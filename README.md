@@ -8,7 +8,7 @@ No Xcode project, no dependencies: one Swift file compiled with `swiftc`.
 
 - 🖥️ **Menu bar only.** A clipboard icon in the menu bar, with no Dock icon and no windows.
 - 🕘 **Last 15 copies.** Text is captured automatically. If you copy something that's already in the list, it moves to the top instead of appearing twice.
-- ⌨️ **Global shortcut.** Press **⌘⇧V** from any app to open the ClipVault menu. No Accessibility permission is needed.
+- ⌨️ **Global shortcut.** Press **⌃⌥V** from any app to open the ClipVault menu. No Accessibility permission is needed.
 - 🖱️ **Click to copy.** Pick an item from the dropdown and it goes back on your clipboard. Items 1–9 also have number-key shortcuts while the menu is open.
 - 🧹 **Clear History** and **Quit** (⌘Q) in the menu.
 - 🔒 **Privacy.** History lives only in memory and is never written to disk. Items that password managers mark as concealed or transient are skipped.
