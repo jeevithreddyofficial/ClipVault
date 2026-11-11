@@ -1,14 +1,19 @@
 // ClipVault — a tiny clipboard history for the macOS menu bar.
 import AppKit
 import Carbon.HIToolbox
+import ServiceManagement
 
 @MainActor
 final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let maxItems = 15
+    private let maxPins = 10
     private let previewLength = 60
+    private let pinsKey = "pinnedItems"
 
     private var statusItem: NSStatusItem!
     private var history: [String] = []
+    /// Pinned items survive Clear History and relaunches (saved in UserDefaults).
+    private var pinned: [String] = UserDefaults.standard.stringArray(forKey: "pinnedItems") ?? []
     private var lastChangeCount = NSPasteboard.general.changeCount
     private var timer: Timer?
     private var hotKeyRef: EventHotKeyRef?
@@ -81,6 +86,7 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func add(_ text: String) {
+        if pinned.contains(text) { return }   // already at the top in Pinned
         history.removeAll { $0 == text }
         history.insert(text, at: 0)
         if history.count > maxItems { history.removeLast(history.count - maxItems) }
@@ -90,6 +96,19 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+        var shortcut = 1   // number keys 1–9 go to pinned items first, then history
+
+        if !pinned.isEmpty {
+            menu.addItem(header("Pinned"))
+            for (index, text) in pinned.enumerated() {
+                addEntry(to: menu, text: text, tag: index, shortcut: &shortcut,
+                         copy: #selector(copyPinned(_:)),
+                         toggle: #selector(unpin(_:)), toggleTitle: "Unpin", toggleSymbol: "pin.slash",
+                         symbol: "pin.fill", toggleEnabled: true)
+            }
+            menu.addItem(.separator())
+            menu.addItem(header("Recent"))
+        }
 
         if history.isEmpty {
             let empty = NSMenuItem(title: "No clipboard history yet", action: nil, keyEquivalent: "")
@@ -97,18 +116,16 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(empty)
         } else {
             for (index, text) in history.enumerated() {
-                let item = NSMenuItem(title: preview(text), action: #selector(copyItem(_:)), keyEquivalent: "")
-                item.target = self
-                item.tag = index
-                item.toolTip = text.count > 500 ? String(text.prefix(500)) + "…" : text
-                if index < 9 { item.keyEquivalent = String(index + 1); item.keyEquivalentModifierMask = [] }
-                menu.addItem(item)
+                addEntry(to: menu, text: text, tag: index, shortcut: &shortcut,
+                         copy: #selector(copyItem(_:)),
+                         toggle: #selector(pin(_:)), toggleTitle: "Pin", toggleSymbol: "pin",
+                         symbol: nil, toggleEnabled: pinned.count < maxPins)
             }
         }
 
         menu.addItem(.separator())
 
-        let hint = NSMenuItem(title: "Open anytime with ⌃⌥V", action: nil, keyEquivalent: "")
+        let hint = NSMenuItem(title: "⌃⌥V to open · hold ⌥ to pin", action: nil, keyEquivalent: "")
         hint.isEnabled = false
         menu.addItem(hint)
 
@@ -117,8 +134,50 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
         clear.isEnabled = !history.isEmpty
         menu.addItem(clear)
 
+        let login = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        login.target = self
+        login.state = launchAtLoginEnabled ? .on : .off
+        menu.addItem(login)
+
+        menu.addItem(.separator())
+
         let quit = NSMenuItem(title: "Quit ClipVault", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
+    }
+
+    private func header(_ title: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        item.attributedTitle = NSAttributedString(string: title, attributes: [
+            .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold),
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ])
+        return item
+    }
+
+    /// Adds a clipboard entry plus its ⌥-alternate (Pin / Unpin) right below it.
+    private func addEntry(to menu: NSMenu, text: String, tag: Int, shortcut: inout Int,
+                          copy: Selector, toggle: Selector, toggleTitle: String, toggleSymbol: String,
+                          symbol: String?, toggleEnabled: Bool) {
+        let key = shortcut <= 9 ? String(shortcut) : ""
+        shortcut += 1
+
+        let item = NSMenuItem(title: preview(text), action: copy, keyEquivalent: key)
+        item.target = self
+        item.tag = tag
+        item.keyEquivalentModifierMask = []
+        item.toolTip = text.count > 500 ? String(text.prefix(500)) + "…" : text
+        if let symbol { item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
+        menu.addItem(item)
+
+        let alt = NSMenuItem(title: "\(toggleTitle): \(preview(text))", action: toggle, keyEquivalent: key)
+        alt.target = self
+        alt.tag = tag
+        alt.keyEquivalentModifierMask = [.option]
+        alt.isAlternate = true
+        alt.isEnabled = toggleEnabled
+        alt.image = NSImage(systemSymbolName: toggleSymbol, accessibilityDescription: toggleTitle)
+        menu.addItem(alt)
     }
 
     private func preview(_ text: String) -> String {
@@ -140,8 +199,59 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add(text)                           // move it to the top
     }
 
+    @objc private func copyPinned(_ sender: NSMenuItem) {
+        guard pinned.indices.contains(sender.tag) else { return }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(pinned[sender.tag], forType: .string)
+        lastChangeCount = pb.changeCount
+    }
+
+    @objc private func pin(_ sender: NSMenuItem) {
+        guard history.indices.contains(sender.tag), pinned.count < maxPins else { return }
+        pinned.append(history.remove(at: sender.tag))
+        savePins()
+    }
+
+    @objc private func unpin(_ sender: NSMenuItem) {
+        guard pinned.indices.contains(sender.tag) else { return }
+        let text = pinned.remove(at: sender.tag)
+        savePins()
+        add(text)   // drop it back into recent history
+    }
+
+    private func savePins() {
+        UserDefaults.standard.set(pinned, forKey: pinsKey)
+    }
+
     @objc private func clearHistory() {
-        history.removeAll()
+        history.removeAll()   // pinned items are kept
+    }
+
+    // MARK: - Launch at Login
+
+    private var launchAtLoginEnabled: Bool {
+        SMAppService.mainApp.status == .enabled
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled {
+                try service.unregister()
+            } else {
+                try service.register()
+                if service.status == .requiresApproval {
+                    SMAppService.openSystemSettingsLoginItems()
+                }
+            }
+        } catch {
+            NSApp.activate(ignoringOtherApps: true)
+            let alert = NSAlert()
+            alert.messageText = "Couldn't change Launch at Login"
+            alert.informativeText = "\(error.localizedDescription)\n\nTip: move ClipVault.app to /Applications first, or add it under System Settings → General → Login Items."
+            alert.runModal()
+        }
     }
 }
 

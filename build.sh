@@ -9,7 +9,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 swiftc -O \
   -target "$(uname -m)-apple-macos13.0" \
-  -framework AppKit \
+  -framework AppKit -framework ServiceManagement \
   Sources/main.swift \
   -o "$APP/Contents/MacOS/ClipVault"
 

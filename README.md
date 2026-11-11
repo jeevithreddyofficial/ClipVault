@@ -5,7 +5,7 @@ A tiny, native macOS menu bar app that remembers the last **15 text items** you 
 No Xcode project, no dependencies: one Swift file compiled with `swiftc`.
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="ClipVault menu open in the macOS menu bar" width="296">
+  <img src="docs/screenshot.png" alt="ClipVault menu open in the macOS menu bar" width="432">
 </p>
 
 ## Features
@@ -13,9 +13,11 @@ No Xcode project, no dependencies: one Swift file compiled with `swiftc`.
 - 🖥️ **Menu bar only.** A clipboard icon in the menu bar, with no Dock icon and no windows.
 - 🕘 **Last 15 copies.** Text is captured automatically. If you copy something that's already in the list, it moves to the top instead of appearing twice.
 - ⌨️ **Global shortcut.** Press **⌃⌥V** from any app to open the ClipVault menu. No Accessibility permission is needed.
-- 🖱️ **Click to copy.** Pick an item from the dropdown and it goes back on your clipboard. Items 1–9 also have number-key shortcuts while the menu is open.
+- 📌 **Pin favorites.** Hold **⌥ Option** while the menu is open and click an item to pin it. Pinned items stay at the top, survive **Clear History**, and are still there after a restart (up to 10). Hold ⌥ and click a pinned item to unpin it.
+- 🚀 **Launch at Login.** Turn it on from the menu and ClipVault starts automatically when you log in to your Mac.
+- 🖱️ **Click to copy.** Pick an item from the dropdown and it goes back on your clipboard. Items 1–9 also have number-key shortcuts while the menu is open, with pinned items numbered first.
 - 🧹 **Clear History** and **Quit** (⌘Q) in the menu.
-- 🔒 **Privacy.** History lives only in memory and is never written to disk. Items that password managers mark as concealed or transient are skipped.
+- 🔒 **Privacy.** Recent history lives only in memory and is never written to disk. Only items you choose to pin are saved, in the app's local preferences. Items that password managers mark as concealed or transient are skipped.
 - 🪶 **Lightweight.** It checks the clipboard's change counter twice a second, which uses almost no CPU.
 
 ## Download
@@ -41,7 +43,7 @@ cd ClipVault
 open ClipVault.app
 ```
 
-To install it, drag `ClipVault.app` into `/Applications`. To start it at login, add it under **System Settings → General → Login Items**.
+To install it, drag `ClipVault.app` into `/Applications`. Then turn on **Launch at Login** from the ClipVault menu.
 
 ## Project Structure
 
