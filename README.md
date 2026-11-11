@@ -22,7 +22,7 @@ No Xcode project, no dependencies: one Swift file compiled with `swiftc`.
 
 ## Download
 
-Grab **`ClipVault-v1.0.0-macOS.zip`** from the [latest release](https://github.com/jeevithreddyofficial/ClipVault/releases/latest). It's a universal build that runs on Apple Silicon and Intel Macs. Unzip it and drag `ClipVault.app` into `/Applications`.
+Grab **`ClipVault-v1.1.0-macOS.zip`** from the [latest release](https://github.com/jeevithreddyofficial/ClipVault/releases/latest). It's a universal build that runs on Apple Silicon and Intel Macs. Unzip it and drag `ClipVault.app` into `/Applications`.
 
 > **First launch:** the app isn't notarized by Apple, so macOS will block it the first time. Right-click `ClipVault.app` → **Open** → **Open**. Or run:
 > ```bash
