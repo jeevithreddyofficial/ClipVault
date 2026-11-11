@@ -1,5 +1,6 @@
 // ClipVault — a tiny clipboard history for the macOS menu bar.
 import AppKit
+import Carbon.HIToolbox
 
 @MainActor
 final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -10,6 +11,7 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var history: [String] = []
     private var lastChangeCount = NSPasteboard.general.changeCount
     private var timer: Timer?
+    private var hotKeyRef: EventHotKeyRef?
 
     /// Pasteboard types that password managers use to mark secrets — never stored.
     private let ignoredTypes: Set<NSPasteboard.PasteboardType> = [
@@ -38,6 +40,31 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
         timer.tolerance = 0.2
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
+
+        registerHotKey()
+    }
+
+    // MARK: - Global hotkey (⌘⇧V)
+
+    private func registerHotKey() {
+        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard),
+                                      eventKind: UInt32(kEventHotKeyPressed))
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+
+        InstallEventHandler(GetApplicationEventTarget(), { _, _, userData in
+            guard let userData else { return noErr }
+            let vault = Unmanaged<ClipVault>.fromOpaque(userData).takeUnretainedValue()
+            DispatchQueue.main.async { MainActor.assumeIsolated { vault.openMenu() } }
+            return noErr
+        }, 1, &eventType, selfPtr, nil)
+
+        let hotKeyID = EventHotKeyID(signature: OSType(0x434C5056) /* 'CLPV' */, id: 1)
+        RegisterEventHotKey(UInt32(kVK_ANSI_V), UInt32(cmdKey | shiftKey),
+                            hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
+    }
+
+    private func openMenu() {
+        statusItem.button?.performClick(nil)
     }
 
     // MARK: - Clipboard monitoring
@@ -80,6 +107,10 @@ final class ClipVault: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+
+        let hint = NSMenuItem(title: "Open anytime with ⌘⇧V", action: nil, keyEquivalent: "")
+        hint.isEnabled = false
+        menu.addItem(hint)
 
         let clear = NSMenuItem(title: "Clear History", action: #selector(clearHistory), keyEquivalent: "")
         clear.target = self
